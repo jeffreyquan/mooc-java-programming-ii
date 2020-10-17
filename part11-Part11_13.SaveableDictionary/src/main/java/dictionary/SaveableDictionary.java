@@ -85,8 +85,8 @@ public class SaveableDictionary {
                 return;
             }
  
-            String pari = word + ":" + words.get(word);
-            writer.println(pari);
+            String pair = word + ":" + words.get(word);
+            writer.println(pair);
  
             allreadySaved.add(word);
             allreadySaved.add(words.get(word));
