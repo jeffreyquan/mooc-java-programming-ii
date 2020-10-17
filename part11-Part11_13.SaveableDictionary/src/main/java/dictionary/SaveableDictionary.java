@@ -4,93 +4,92 @@
  * and open the template in the editor.
  */
 package dictionary;
-
+ 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 /**
  *
  * @author jeffreyquan
  */
 public class SaveableDictionary {
-
-    private Map<String, String> dictionary;
+ 
+    private Map<String, String> words;
     private String file;
-
+ 
     public SaveableDictionary() {
-        this.dictionary = new HashMap<>();
+        this.words = new HashMap<>();
     }
-
+ 
     public SaveableDictionary(String file) {
         this();
         this.file = file;
     }
-
+ 
     public boolean load() {
         try {
-            File newFile = new File(this.file);
-            Scanner fileReader = new Scanner(newFile);
-            while (fileReader.hasNextLine()) {
-                String line = fileReader.nextLine();
-                String[] parts = line.split(":");
-
-                this.add(parts[0], parts[1]);
-            }
+            Files.lines(Paths.get(this.file))
+                    .map(l -> l.split(":"))
+                    .forEach(parts -> {
+                        this.words.put(parts[0], parts[1]);
+                        this.words.put(parts[1], parts[0]);
+                    });
             return true;
-        } catch (Exception e) {
+        } catch (IOException ex) {
             return false;
         }
     }
-
+ 
+    public boolean save() {
+        try {
+            PrintWriter writer = new PrintWriter(new File(file));
+            saveWords(writer);
+            writer.close();
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
+ 
     public void add(String word, String translation) {
-        if (this.dictionary.containsKey(word) || this.dictionary.containsValue(word)) {
+        if (words.containsKey(word)) {
             return;
         }
-
-        this.dictionary.put(word, translation);
+ 
+        words.put(word, translation);
+        words.put(translation, word);
     }
-
+ 
     public String translate(String word) {
-        String translation = null;
-        
-        for (Map.Entry<String, String> entry : this.dictionary.entrySet()) {
-            if (entry.getKey().equals(word)) {
-                translation = entry.getValue();
-            } else if (entry.getValue().equals(word)) {
-                translation = entry.getKey();
-            }
-        }
-        
-        return translation;
+        return words.get(word);
     }
-
+ 
     public void delete(String word) {
-        String translation = this.dictionary.get(word);
-        if (this.dictionary.containsKey(word)) {
-            this.dictionary.remove(word);
-        } else if (this.dictionary.containsValue(word)) {
-            this.dictionary.remove(this.translate(word));
-        }
+        String translation = translate(word);
+ 
+        words.remove(word);
+        words.remove(translation);
     }
-
-    public boolean save() {
-        PrintWriter writer = null;
-        try {
-            writer = new PrintWriter(this.file);
-            for (Map.Entry<String, String> entry : this.dictionary.entrySet()) {
-                String word = entry.getKey();
-                String translation = entry.getValue();
-                writer.println(word + ":" + translation);
-            }              
-        } catch (Exception e) {
-            return false;
-        } finally {
-            writer.close();
-            return true;
-        }
+ 
+    private void saveWords(PrintWriter writer) throws IOException {
+        List<String> allreadySaved = new ArrayList<>();
+        words.keySet().stream().forEach(word -> {
+            if (allreadySaved.contains(word)) {
+                return;
+            }
+ 
+            String pari = word + ":" + words.get(word);
+            writer.println(pari);
+ 
+            allreadySaved.add(word);
+            allreadySaved.add(words.get(word));
+        });
     }
 }
